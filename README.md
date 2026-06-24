@@ -1,24 +1,82 @@
 # DevOps Foundations Lab
 
 ## Organization & Project Setup
-- Organization: <org-name> (region: <region>)
-- Project: <project-name> (visibility: Public/Private, process: Agile)
+- Organization: <lukmanobomeghie> 
+- Project: 3MTTDevOps (visibility: Public/Private, process: Agile)
 
 ## Repository Structure
-<brief description of folders/files>
+My Repo has two branches main and feature/add-pipeline-yaml. Feature/add-pipeline-yaml is always merged to main automatically each time i push to the branch
 
 ## Pipeline
-- Trigger: push to `main`
-- Steps: install → build → test
-- Latest run: <link or status>
+# Pipeline: triggers on push to feature/add-pipeline-yaml,
+# runs build/test steps, then opens a PR into main with auto-complete enabled.
+
+trigger:
+- feature/add-pipeline-yaml
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  organization: 'https://dev.azure.com/lukmanobomeghie'
+  project: '3mttDevOps'
+  repo: '3mttDevOps'
+  sourceBranch: 'feature/add-pipeline-yaml'
+  targetBranch: 'main'
+
+steps:
+- script: echo Hello, world!
+  displayName: 'Run a one-line script'
+
+- script: |
+    echo Add other tasks to build, test, and deploy your project.
+    echo See https://aka.ms/yaml
+  displayName: 'Run a multi-line script'
+
+# --- Create PR and enable auto-complete ---
+- script: |
+    az extension add --name azure-devops
+
+    echo $(System.AccessToken) | az devops login
+
+    # Check if a PR already exists for this branch to avoid duplicates
+    EXISTING_PR=$(az repos pr list \
+      --organization $(organization) \
+      --project $(project) \
+      --repository $(repo) \
+      --source-branch $(sourceBranch) \
+      --target-branch $(targetBranch) \
+      --status active \
+      --query "[0].pullRequestId" -o tsv)
+
+    if [ -z "$EXISTING_PR" ]; then
+      echo "Creating new pull request..."
+      PR_ID=$(az repos pr create \
+        --organization $(organization) \
+        --project $(project) \
+        --repository $(repo) \
+        --source-branch $(sourceBranch) \
+        --target-branch $(targetBranch) \
+        --title "Auto PR: merge $(sourceBranch) into $(targetBranch)" \
+        --description "Automatically created by pipeline run $(Build.BuildNumber)" \
+        --auto-complete true \
+        --squash true \
+        --delete-source-branch false \
+        --query "pullRequestId" -o tsv)
+      echo "Created PR #$PR_ID with auto-complete enabled"
+    else
+      echo "PR already exists: #$EXISTING_PR — skipping creation"
+    fi
+  displayName: 'Create PR into main with auto-complete'
+  env:
+    AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
 
 ## Boards
-- Work item types used: User Story, Task
-- Sprint/iteration structure: <brief description>
+- I created User Story, added Task and linked it to related work and PR under development tab.
+- I also set Sprint/iteration 
 
 ## Challenges Encountered
-- <e.g. authentication issues with Git push, YAML indentation errors, etc.>
-- <how each was resolved>
+- The main issue i was having is my local branch behind my cloud-base branch, which prevent me from pushing, i was able to resolved it.
 
 ## Access
-- Visibility: <Public / Private with invited users>
+- Visibility: My visibiliy is set to public view.
